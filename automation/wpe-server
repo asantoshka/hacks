@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    cd /home/kali/hacks/win-priv-tools
+    ls -la
+    python -m http.server 80
+else
+    cd /home/kali/hacks/win-priv-tools
+    ls -la
+    python -m http.server $1
+fi

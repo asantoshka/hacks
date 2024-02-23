@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "# python -c 'import pty; pty.spawn("/bin/bash")'"
+    echo '# python3 -c "import pty; pty.spawn('/bin/bash')"'
+    echo "# export TERM=xterm"
+    echo "# Hit Ctrl+Z"
+    echo "# stty raw -echo; fg"
+    rlwrap nc -nlvp 1337
+else
+    echo "# python -c 'import pty; pty.spawn("/bin/bash")'"
+    echo '# python3 -c "import pty; pty.spawn('/bin/bash')"'
+    echo "# export TERM=xterm"
+    echo "# Hit Ctrl+Z"
+    echo "# stty raw -echo; fg"
+    rlwrap nc -nlvp $1
+fi

