@@ -1,11 +1,42 @@
 #!/bin/bash
 
+#!/bin/bash
+
+# Directory to store log of web requests
+REQUEST_LOG="/tmp/web_requests.log"
+
+# Function to display only the latest 2 web requests
+display_latest_requests() {
+    if [ -f "$REQUEST_LOG" ]; then
+        echo "Latest 2 Web Requests:"
+        tail -n 2 "$REQUEST_LOG"
+    else
+        echo "No web requests logged yet."
+    fi
+}
+
+# Function to start the web server and capture requests
+start_web_server() {
+    # Capture output of web server and write it to REQUEST_LOG
+    python -m http.server "$1" 2>&1 | tee >(while read -r line; do
+        echo "$line" >> "$REQUEST_LOG"
+        # Keep only the last 2 requests in the log
+        tail -n 2 "$REQUEST_LOG" > "$REQUEST_LOG.tmp"
+        mv "$REQUEST_LOG.tmp" "$REQUEST_LOG"
+    done)
+}
+
+# Main logic
 if [ $# -eq 0 ]; then
-    cd /home/kali/hacks/win-priv-tools
-    ls -la
-    python -m http.server 80
+    cd /home/kali/hacks/win-priv-tools || exit
+    ls
+    display_latest_requests
+    start_web_server 80
 else
-    cd /home/kali/hacks/win-priv-tools
+    cd /home/kali/hacks/win-priv-tools || exit
     ls -la
-    python -m http.server $1
+    display_latest_requests
+    start_web_server "$1"
 fi
+
+
